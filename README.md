@@ -730,6 +730,177 @@ Proyecto local ─ git push
 
 ---
 
+
+# 🔐 Configuración de llave SSH
+
+Para autenticar el computador de forma segura con **GitHub** y **GitLab**, se creó una llave SSH de tipo **ED25519** desde PowerShell.
+
+## Crear la llave SSH
+
+Se utilizó el siguiente comando:
+
+```powershell
+ssh-keygen -t ed25519 -C "kevincuervo112355@umanizales.edu.co"
+```
+
+Después de ejecutar el comando, se presionó `Enter` para utilizar la ubicación predeterminada propuesta por el sistema.
+
+La llave quedó almacenada en:
+
+```text
+C:\Users\Kevinn Cuervo\.ssh
+```
+
+Al finalizar se generaron dos archivos:
+
+```text
+id_ed25519
+id_ed25519.pub
+```
+
+| Archivo | Función |
+|---|---|
+| `id_ed25519` | Llave privada. No debe compartirse, publicarse ni subirse al repositorio. |
+| `id_ed25519.pub` | Llave pública. Es la que se registra en GitHub y GitLab. |
+
+> ⚠️ La llave privada `id_ed25519` nunca debe compartirse. Solamente se utiliza públicamente el contenido de `id_ed25519.pub`.
+
+## Verificar que la llave fue creada
+
+Para comprobar los archivos dentro de la carpeta `.ssh` se utilizó:
+
+```powershell
+Get-ChildItem $env:USERPROFILE\.ssh
+```
+
+## Copiar la llave pública
+
+La llave pública se copió directamente al portapapeles con:
+
+```powershell
+Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub | Set-Clipboard
+```
+
+El contenido copiado se agregó posteriormente en la sección de **SSH Keys** de GitLab y en **SSH and GPG keys** de GitHub.
+
+## Registrar la llave en GitLab
+
+En GitLab se agregó la llave pública con:
+
+- **Key:** contenido completo de `id_ed25519.pub`
+- **Title:** `Kevinn Cuervo`
+- **Usage type:** `Authentication`
+
+Después se comprobó la conexión con:
+
+```powershell
+ssh -T git@gitlab.com
+```
+
+El resultado confirmó correctamente la autenticación:
+
+```text
+Welcome to GitLab, @kevinncuervo!
+```
+
+Como la conexión mediante el puerto 22 funcionó correctamente, no fue necesario utilizar el puerto alternativo 443.
+
+## Registrar la llave en GitHub
+
+La misma llave pública también se agregó en GitHub desde:
+
+```text
+Settings → SSH and GPG keys → New SSH key
+```
+
+Se utilizó:
+
+- **Title:** `Kevinn Cuervo`
+- **Key type:** `Authentication Key`
+- **Key:** contenido completo de `id_ed25519.pub`
+
+La conexión se comprobó con:
+
+```powershell
+ssh -T git@github.com
+```
+
+GitHub confirmó la autenticación correctamente:
+
+```text
+Hi kevinncuervo! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+---
+
+# 🔄 Cambio de HTTPS a SSH
+
+Después de configurar la llave SSH en ambas plataformas, se reemplazaron las direcciones HTTPS del proyecto por direcciones SSH.
+
+## Configurar GitHub como remoto principal
+
+Se cambió la URL principal de `origin` con:
+
+```powershell
+git remote set-url origin git@github.com:kevinncuervo/Trabajo-1.git
+```
+
+## Limpiar URLs anteriores de push
+
+```powershell
+git config --unset-all remote.origin.pushurl
+```
+
+## Agregar GitHub como destino de push
+
+```powershell
+git remote set-url --add --push origin git@github.com:kevinncuervo/Trabajo-1.git
+```
+
+## Agregar GitLab como segundo destino de push
+
+```powershell
+git remote set-url --add --push origin git@gitlab.com:kevinncuervo-group/trabajo-1.git
+```
+
+## Verificar la configuración
+
+Se comprobó la configuración final con:
+
+```powershell
+git remote -v
+```
+
+El resultado quedó de la siguiente manera:
+
+```text
+origin  git@github.com:kevinncuervo/Trabajo-1.git (fetch)
+origin  git@github.com:kevinncuervo/Trabajo-1.git (push)
+origin  git@gitlab.com:kevinncuervo-group/trabajo-1.git (push)
+```
+
+Esto permite utilizar **GitHub como repositorio principal para `fetch` y `pull`**, mientras que un solo `git push` envía los commits tanto a GitHub como a GitLab.
+
+```text
+                         ┌──── SSH ───► GitHub
+Proyecto local ─ git push
+                         └──── SSH ───► GitLab
+
+Proyecto local ─ git pull ───── SSH ───► GitHub
+```
+
+A partir de esta configuración, el flujo normal de trabajo continúa siendo:
+
+```powershell
+git add .
+git commit -m "Descripción de los cambios"
+git push
+```
+
+La diferencia es que la autenticación ahora se realiza mediante la llave SSH en lugar de HTTPS.
+
+---
+
 # 🔄 Flujo normal de trabajo
 
 Después de modificar cualquier archivo:
